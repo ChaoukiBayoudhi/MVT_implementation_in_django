@@ -1,20 +1,42 @@
 from django.db import models
 
+# Product model : Class that inherits from models.Model
+
 class Product(models.Model):
+    #define a string Field (equivalent to varchar(100) in SQL)
     label=models.CharField(max_length=100,unique=True)
+    #define a decimal field (equivalent to Number(10,2) in SQL Oracle)
     price=models.DecimalField(max_digits=10,decimal_places=2,default=0)
+    #define a text field (to input a multi-line text)
     description=models.TextField()
+    #define a date field
+    #the auto_now_add=True will automatically set the date to the current date when the object is created
+    #equivant in SQL oracle :  manifacturing_date DATE DEFAULT SYSDATE
     manifacturingDate=models.DateField(auto_now_add=True)
     expirationDate=models.DateField()
+    #define an image field
+    #upload_to is the directory where the image will be stored
+    #null=True means that the field can be empty
+    #blank=True means that the field is not required
+    #this Field need the library Pillow, to be installed with the command : pip install pillow
     photo=models.ImageField(upload_to='images/products',null=True,blank=True)
     #relationship between Product and provider (1-n)
     provider=models.ForeignKey('Provider',on_delete=models.SET_NULL,null=True,blank=True)
+    #rename the table in the database
+    class Meta:
+        db_table='products'
+
+    def __str__(self):
+        return f'{self.label} ({self.price} $)'
 
 class Provider(models.Model):
     name=models.CharField(max_length=100)
     email=models.EmailField(unique=True)
     phone=models.CharField(max_length=15)
     website=models.URLField(null=True,blank=True)
+    #rename the table in the database
+    class Meta:
+        db_table='providers'
 
 class Client(models.Model):
     first_name=models.CharField(max_length=100)
@@ -25,7 +47,9 @@ class Client(models.Model):
     photo=models.ImageField(upload_to='images/clients',null=True,blank=True)
     #define the relationship between Client and Address (1-1)
     address=models.OneToOneField('Address',on_delete=models.SET_NULL, null=True,blank=True)
-    command=models.ManyToManyField('Product',through='Command',through_fields=('client','product'))
+    command_clients=models.ManyToManyField('Product',through='Command',through_fields=('client','product'))
+    class Meta:
+        db_table='clients'
 
 class Address(models.Model):
     houne_number=models.CharField(max_length=10)
@@ -33,6 +57,8 @@ class Address(models.Model):
     city=models.CharField(max_length=100)
     country=models.CharField(max_length=100)
     zip_code=models.CharField(max_length=10)
+    class Meta:
+        db_table='addresses'
 
 class Command(models.Model):
     product=models.ForeignKey('Product',on_delete=models.CASCADE)
@@ -40,3 +66,18 @@ class Command(models.Model):
     quantity=models.PositiveIntegerField()
     date=models.DateTimeField(auto_now_add=True)
     amount=models.DecimalField(max_digits=10,decimal_places=2)
+    #inner class
+    #must be just after the fields
+    #this class add some constraints and options to the model
+    class Meta:
+        #define a unique constraint
+        unique_together=('product','client')
+        #order the commands by date in descending order
+        ordering=['-date',]
+        #order the commands by date in ascending order
+        #ordering=['date',]
+        #rename the table in the database
+        db_table='commands'
+
+
+
